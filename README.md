@@ -43,7 +43,7 @@ Next, upload the kernel module to the Incident Response Workstation that was cre
 For this step, simply launch another Amazon Linux (use ami-cfe4b2b0) but be sure that you use the same SSH Key that was uploaded to the Incident Response Workstation.  Note that the Security Group must be configured to allow SSH connectivity from the IR Workstation.  If desired, run some stuff to make the memory contain something interesting.  (I will provide some ideas in the next iteration of this demo.)
 
 ## STEP 4 - Collect Evidence from Demonstration Target
-Now for the fun part.  Copy the following code to a notepad and alter the parameters as appropriate and then paste the code into the command line:
+Now for the fun part.  Copy the following code to a notepad and alter the parameters as appropriate and then paste the code into the command line while connected via SSH to the Incident Response Workstation:
 
 ```
 ## Set Parameters as appropriate
