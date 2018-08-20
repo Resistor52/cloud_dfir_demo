@@ -48,7 +48,7 @@ Now for the fun part.  Copy the following code to a notepad and alter the parame
 ```
 ## Set Parameters as appropriate
 TARGET_IP=54.152.47.17
-SSH_KEY=ken-aws1-pers.pem
+SSH_KEY=YOURKEY.pem
 
 ## Leave as is for Amazon Linix ami-cfe4b2b0
 #SSH_USER=ubuntu                           # Ubuntu 
