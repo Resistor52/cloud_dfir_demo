@@ -1,7 +1,10 @@
-# cloud_dfir_demo
-Demonstration of ThreatResponse aws_ir Step by Step
+# cloud_dfir_demo - Demonstration of Typical Forensic Techniques in the AWS Cloud Step-by-Step
+This demo is a step-by-step walthtrough of techniques that can be used to perform forensics on AWS Elastic Cloud Compute (EC2) Instances. We use various tools such as LiME, Magarita Shotgun, aws_ir, SIFT, Rekall, and Volitility during this demonstration lab.
 
-NOTE: This is just a first draft, check back soon for improvements
+## INTRODUCTION & CONTEXT
+This lab makes use of four different EC2 instances, each has their own purpose. While the lab could be done with just two EC2 instances, I want the student to think in terms of the Incident Response Workflow (Preparation > Identification > Containment > Eradication, Recovery > Lessons Learned).
+
+
 
 ## STEP 1 - Create the LiME Memory Module for the AMI
 In order to do a memory capture using Margarita Shotgun, it is necessary to have an external LKM (memory module) that corresponds to the kernal that is in use by the EC2 instance that is to be imaged. Do that by launching a new EC2 instance (use ami-cfe4b2b0) with the same AMI of the system to be imaged. Next, SSH into it and run the following commands:
