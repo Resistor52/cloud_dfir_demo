@@ -28,15 +28,16 @@ Ok, without further ado, let's have some fun!
 As noted above, this is a Preparation Phase activity that should be done once for each AMI used in your environment, at the time it is approved (or detected). This is because in order to do a memory capture using Margarita Shotgun, it is necessary to have an external LKM (memory module) that corresponds to the kernal that is in use by the EC2 instance that is to be imaged. Do that by launching a new EC2 instance with the same AMI of the system to be imaged. For example, you can use use ami-0ff8a91507f77f867 or whatever is the latest in the Marketplace. Next, SSH into it and run the following commands as root:
 
 ```
-sudo yum update
+sudo yum update -y
 sudo yum install -y git
-sudo yum install kernel-devel-$(uname -r)
+sudo yum install -y kernel-devel-$(uname -r)
 git clone https://github.com/504ensicsLabs/LiME.git
 cd LiME/src
 make
 ```
 
-The result of the 'make' command will be a file with a 'ko' extension.  For example, `lime-4.14.47-56.37.amzn1.x86_64.ko` would be created for ami-0ff8a91507f77f867.
+The result of the 'make' command will be a file with a 'ko' extension.  For example, `lime-4.14.62-65.117.amzn1.x86_64.ko
+` would be created for ami-0ff8a91507f77f867.
 
 Download this file for use with Margarita Shotgun.  After downloading the LKM, this EC2 instance can be terminated.  NOTE: You DO NOT want to run these commands on the same instance that is to be imaged because you want to have minimal impact of the target instance.
 
