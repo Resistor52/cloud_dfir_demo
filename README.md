@@ -1,4 +1,4 @@
-# cloud_dfir_demo - Demonstration of Typical Forensic Techniques in the AWS Cloud Step-by-Step
+# Demonstration of Typical Forensic Techniques in the AWS Cloud Step-by-Step
 This demo is a step-by-step walthtrough of techniques that can be used to perform forensics on AWS Elastic Cloud Compute (EC2) Instances. We use various tools such as LiME, Magarita Shotgun, aws_ir, SIFT, Rekall, and Volitility during this demonstration lab.
 
 ## INTRODUCTION & CONTEXT
