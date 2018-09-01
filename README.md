@@ -5,7 +5,7 @@ This demo is a step-by-step walthtrough of techniques that can be used to perfor
 This lab makes use of four different EC2 instances, each has their own purpose. While the lab could be done with just two EC2 instances, I want the student to think in terms of the Incident Response Workflow (Preparation > Identification > Containment > Eradication, Recovery > Lessons Learned).
 
 ### Preparation
-The Preparation Step is one of the most important.  It is this step that positions you for success. After all, in a security incident, time is of the essence. Therefore, it is important to understand your tools and make sure that they are in working order. Because it takes time to build the Incident Response Workstation and the SIFT Workstation, you will want to have these build in advance and saved as an AMI. This way, you can launch them as needed. Likewise, you will want to have the memory modules for all kernels present in your environment readily available.  The best way to do this is to make the memory module each time you authozize a new AMI to be run in your environment. (You aren't just launching random AMIs into production, are you?)
+The Preparation Step is one of the most important.  It is this step that positions you for success. After all, in a security incident, time is of the essence. Therefore, it is important to understand your tools and make sure that they are in working order. Because it takes time to build the Incident Response Workstation and the SIFT Workstation, you will want to have these built in advance and saved as an AMI. This way, you can launch them as needed. Likewise, you will want to have the memory modules for all kernels present in your environment readily available.  The best way to do this is to make the memory module each time you authozize a new AMI to be run in your environment. (You aren't just launching random AMIs into production, are you?)
 
 ### Identification
 In the Identification Step, you recognize that there may be a security incident in progress and start the process of scoping the incident.  For the purposes of our lab, this is when we will spin up the target EC2 instance and create some interesting artifacts to analyze.
@@ -36,12 +36,12 @@ cd LiME/src
 make
 ```
 
-The result of the 'make' command will be a file with a 'ko' extension.  For example, `lime-4.14.47-56.37.amzn1.x86_64.ko` would be created for ami-cfe4b2b0.
+The result of the 'make' command will be a file with a 'ko' extension.  For example, `lime-4.14.47-56.37.amzn1.x86_64.ko` would be created for ami-0ff8a91507f77f867.
 
 Download this file for use with Margarita Shotgun.  After downloading the LKM, this EC2 instance can be terminated.  NOTE: You DO NOT want to run these commands on the same instance that is to be imaged because you want to have minimal impact of the target instance.
 
 ## STEP 2 - Prepare the Demo Incident Response Workstation
-For this demonstration we will use a new Amazon Linux EC2 instance.  (Use ami-cfe4b2b0.) Launch the instance and create an Instance Profile with full administrator access.  
+For this demonstration we will use a new Amazon Linux EC2 instance. Launch the instance and create an Instance Profile with full administrator access.  
 
 NOTES: 
 * This demo will be updated to use an instance profile with least privileges in the future.  
