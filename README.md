@@ -25,7 +25,7 @@ Never waste a crisis. Use the Lessons Learned Phase to drive your security agend
 Ok, without further ado, let's have some fun!
 
 ## STEP 1 - Create the LiME Memory Module for the AMI
-As noted above, this is a Preparation Phase activity that should be done once for each AMI used in your environment, at the time it is approved (or detected). This is because in order to do a memory capture using Margarita Shotgun, it is necessary to have an external LKM (memory module) that corresponds to the kernal that is in use by the EC2 instance that is to be imaged. Do that by launching a new EC2 instance with the same AMI of the system to be imaged. For example, you can use use ami-cfe4b2b0 or whatever is the latest in the Marketplace. Next, SSH into it and run the following commands:
+As noted above, this is a Preparation Phase activity that should be done once for each AMI used in your environment, at the time it is approved (or detected). This is because in order to do a memory capture using Margarita Shotgun, it is necessary to have an external LKM (memory module) that corresponds to the kernal that is in use by the EC2 instance that is to be imaged. Do that by launching a new EC2 instance with the same AMI of the system to be imaged. For example, you can use use ami-0ff8a91507f77f867 or whatever is the latest in the Marketplace. Next, SSH into it and run the following commands:
 
 ```
 sudo yum update
