@@ -97,5 +97,7 @@ aws_ir --examiner-cidr-range $MY_IP/32 instance-compromise --target $TARGET_IP -
 
 Note that we are calling Margarita Shotgun prior to AWS_IR because although AWS_IR will call Margarita Shotgun, in the present form AWS_IR cannot accept a parameter on the command line to tell Margarita Shotgun which memory module to use.  Instead AWS_IR assumes that the kernel module is in its repository.  The bad news is that recent kernels are not.  Therefore, the simple workaround is to call Margarita Shotgun first.  (Future versions of this demo will show how to set up a custom kernel module repository.)
 
+TROUBLESHOOTING: Did you get an "Unable to locate credentials" error? That may indicate that you forgot to attach the instance profile in Step 2
+
 ## STEP 5 - Analyze the Data using Rekall and Volitility
 (Coming Soon)
