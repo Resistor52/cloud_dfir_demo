@@ -77,7 +77,9 @@ wget -q https://raw.githubusercontent.com/Resistor52/cloud_dfir_demo/master/DONT
 bash dont_peek.sh
 rm dont_peek.sh
 ```
-Be sure that you use the same SSH Key that was uploaded to the Incident Response Workstation.  Note that the Security Group for this EC2 instance must be configured to allow SSH connectivity from the IR Workstation so that Margarita Shotgun can connect to it.  
+Be sure that you use the same SSH Key that was uploaded to the Incident Response Workstation.  Note that the Security Group for this EC2 instance must be configured to allow SSH connectivity from the IR Workstation so that Margarita Shotgun can connect to it. 
+
+NOTE: Don't read the `dont_peek.sh` or the forensic analysis will not be a surprise.
 
 ## STEP 4 - Collect Evidence from Demonstration Target
 Now for the fun part.  Copy the following code to a notepad and alter the parameters as appropriate and then paste the code into the command line while connected via SSH to the Incident Response Workstation:
