@@ -61,6 +61,12 @@ pip install aws_ir
 
 Next, upload the kernel module to the Incident Response Workstation that was created in STEP 1.  Also load the SSH Key that can be used to access the target workstation.  For purposes of this demo, it is assumed that the kernel module and SSH key are all in the home directory (/home/ec2-user).
 
+REMINDER: The command to upload files via SCP to your home directory is:
+```
+scp -i <YOUR_SSH_KEY> <YOUR_FILE>  ec2-user@<YOUR_IP_ADDRESS>:~
+```
+
+
 ## STEP 3 - Prepare a Demonstration Target
 For this step, simply launch another Amazon Linux t2.micro EC2 instance and in Step 3 of the Launch wizard, expand the "Advanced Details" part of the form and paste in the following code in the User Data field:
 
