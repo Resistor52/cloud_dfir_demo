@@ -83,10 +83,10 @@ Now for the fun part.  Copy the following code to a notepad and alter the parame
 
 ```
 ## Set Parameters as appropriate
-TARGET_IP=54.152.47.17                       # Update this with your target's IPv4 Address
-SSH_KEY=YOURKEY.pem
+TARGET_IP=<YOUR_IP_ADDRESS>                  # Update this with your target's IPv4 Address
+SSH_KEY=<YOUR_SSH_KEY.pem>
 SSH_USER=ec2-user                            # for Amazon Linux, SSH_USER=ubuntu for Ubuntu
-MODULE=lime-4.14.62-65.117.amzn1.x86_64.ko   # amzn-ami-hvm-2018.03.0.20180622-x86_64-gp2 (ami-cfe4b2b0)
+MODULE=lime-4.14.62-65.117.amzn1.x86_64.ko   # amzn-ami-hvm-2018.03.0.2018Amazon Linux AMI 2018.03.0 (ami-0ff8a91507f77f867)
 
 ## Make the magic happen
 MY_IP=$(curl -s icanhazip.com)
