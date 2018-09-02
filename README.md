@@ -66,6 +66,7 @@ REMINDER: The command to upload files via SCP to your home directory is:
 scp -i <YOUR_SSH_KEY> <YOUR_FILE>  ec2-user@<YOUR_IP_ADDRESS>:~
 ```
 
+NOTE: If you exit SSH, you will need to rerun `source env/bin/activate` or aws_ir will not execute
 
 ## STEP 3 - Prepare a Demonstration Target
 For this step, simply launch another Amazon Linux t2.micro EC2 instance and in Step 3 of the Launch wizard, expand the "Advanced Details" part of the form and paste in the following code in the User Data field:
