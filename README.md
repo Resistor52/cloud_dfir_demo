@@ -62,7 +62,7 @@ pip install aws_ir
 Next, upload the kernel module to the Incident Response Workstation that was created in STEP 1.  Also load the SSH Key that can be used to access the target workstation.  For purposes of this demo, it is assumed that the kernel module and SSH key are all in the home directory (/home/ec2-user).
 
 ## STEP 3 - Prepare a Demonstration Target
-For this step, simply launch another Amazon Linux (use ami-cfe4b2b0) but be sure that you use the same SSH Key that was uploaded to the Incident Response Workstation.  Note that the Security Group must be configured to allow SSH connectivity from the IR Workstation.  
+For this step, simply launch another Amazon Linux t2.micro EC2 instance and in Step 3 of the Launch wizard, expand the "Advanced Details" part of the form and paste in the following code in the User Data field:
 
 ```
 #!/bin/bash
@@ -70,20 +70,17 @@ wget -q https://raw.githubusercontent.com/Resistor52/cloud_dfir_demo/master/DONT
 bash dont_peek.sh
 rm dont_peek.sh
 ```
+Be sure that you use the same SSH Key that was uploaded to the Incident Response Workstation.  Note that the Security Group for this EC2 instance must be configured to allow SSH connectivity from the IR Workstation so that Margarita Shotgun can connect to it.  
 
 ## STEP 4 - Collect Evidence from Demonstration Target
 Now for the fun part.  Copy the following code to a notepad and alter the parameters as appropriate and then paste the code into the command line while connected via SSH to the Incident Response Workstation:
 
 ```
 ## Set Parameters as appropriate
-TARGET_IP=54.152.47.17
+TARGET_IP=54.152.47.17                       # Update this with your target's IPv4 Address
 SSH_KEY=YOURKEY.pem
-
-## Leave as is for Amazon Linix ami-cfe4b2b0
-#SSH_USER=ubuntu                           # Ubuntu
-#MODULE=lime-4.4.0-1061-aws.ko             # ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-20180627 (ami-759bc50a)
-SSH_USER=ec2-user                          # Amazon Linux
-MODULE=lime-4.14.47-56.37.amzn1.x86_64.ko  # amzn-ami-hvm-2018.03.0.20180622-x86_64-gp2 (ami-cfe4b2b0)
+SSH_USER=ec2-user                            # for Amazon Linux, SSH_USER=ubuntu for Ubuntu
+MODULE=lime-4.14.62-65.117.amzn1.x86_64.ko   # amzn-ami-hvm-2018.03.0.20180622-x86_64-gp2 (ami-cfe4b2b0)
 
 ## Make the magic happen
 MY_IP=$(curl -s icanhazip.com)
