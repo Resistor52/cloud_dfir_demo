@@ -1,0 +1,44 @@
+
+(env) [ec2-user@ip-172-31-95-205 ~]$ aws_ir --examiner-cidr-range $MY_IP/32 instance-compromise --target $TARGET_IP --user $SSH_USER --ssh-key $SSH_KEY
+2018-09-02T01:24:17 - aws_ir.cli - INFO - Initialization successful proceeding to incident plan.
+2018-09-02T01:24:17 - aws_ir.libs.case - INFO - Initial connection to AmazonWebServices made.
+2018-09-02T01:24:25 - aws_ir.libs.case - INFO - Inventory AWS Regions Complete 15 found.
+2018-09-02T01:24:25 - aws_ir.libs.case - INFO - Inventory Availability Zones Complete 43 found.
+2018-09-02T01:24:25 - aws_ir.libs.case - INFO - Beginning inventory of resources world wide.  This might take a minute...
+2018-09-02T01:24:25 - aws_ir.libs.inventory - INFO - Searching ap-south-1 for instance.
+2018-09-02T01:24:26 - aws_ir.libs.inventory - INFO - Searching eu-west-3 for instance.
+2018-09-02T01:24:26 - aws_ir.libs.inventory - INFO - Searching eu-west-2 for instance.
+2018-09-02T01:24:27 - aws_ir.libs.inventory - INFO - Searching eu-west-1 for instance.
+2018-09-02T01:24:27 - aws_ir.libs.inventory - INFO - Searching ap-northeast-2 for instance.
+2018-09-02T01:24:28 - aws_ir.libs.inventory - INFO - Searching ap-northeast-1 for instance.
+2018-09-02T01:24:29 - aws_ir.libs.inventory - INFO - Searching sa-east-1 for instance.
+2018-09-02T01:24:29 - aws_ir.libs.inventory - INFO - Searching ca-central-1 for instance.
+2018-09-02T01:24:29 - aws_ir.libs.inventory - INFO - Searching ap-southeast-1 for instance.
+2018-09-02T01:24:30 - aws_ir.libs.inventory - INFO - Searching ap-southeast-2 for instance.
+2018-09-02T01:24:31 - aws_ir.libs.inventory - INFO - Searching eu-central-1 for instance.
+2018-09-02T01:24:32 - aws_ir.libs.inventory - INFO - Searching us-east-1 for instance.
+2018-09-02T01:24:32 - aws_ir.libs.inventory - INFO - Searching us-east-2 for instance.
+2018-09-02T01:24:32 - aws_ir.libs.inventory - INFO - Searching us-west-1 for instance.
+2018-09-02T01:24:32 - aws_ir.libs.inventory - INFO - Searching us-west-2 for instance.
+2018-09-02T01:24:33 - aws_ir.libs.case - INFO - Inventory complete.  Proceeding to resource identification.
+2018-09-02T01:24:33 - aws_ir.libs.connection - INFO - Problem setting default boto3 session: The config profile (default) could not be found
+2018-09-02T01:24:33 - aws_ir.libs.connection - INFO - We are likely running on AWS instance.: The config profile (default) could not be found
+2018-09-02T01:24:33 - aws_ir.plans.host - INFO - Proceeding with incident plan steps included are ['gather_host', 'isolate_host', 'tag_host', 'snapshotdisks_host', 'examineracl_host', 'get_memo
+ry', 'stop_host']
+2018-09-02T01:24:33 - aws_ir.plans.host - INFO - Executing step gather_host.
+2018-09-02T01:24:34 - aws_ir.plans.host - INFO - Executing step isolate_host.
+2018-09-02T01:24:35 - aws_ir.plans.host - INFO - Executing step tag_host.
+2018-09-02T01:24:35 - aws_ir.plans.host - INFO - Executing step snapshotdisks_host.
+True
+2018-09-02T01:24:35 - aws_ir.plans.host - INFO - Executing step examineracl_host.
+2018-09-02T01:24:37 - aws_ir.plans.host - INFO - Executing step get_memory.
+2018-09-02T01:24:37 - aws_ir.plans.host - INFO - attempting memory run
+2018-09-02T01:24:37 - aws_ir.plans.host - INFO - Attempting run margarita shotgun for ec2-user on 54.173.98.123 with ken-aws1-pers.pem
+b'{\n    "uids": ["Lime Signing Key (Threat Response Official Lime Signing Key) <security@threatresponse.cloud>"],\n    "fingerprint": "EFB6A0CE172EF3D5C8BD67F20F66E271E68B0D50"\n}\n'
+b'{\n    "uids": ["Lime Signing Key (Threat Response Official Lime Signing Key) <security@threatresponse.cloud>"],\n    "fingerprint": "EFB6A0CE172EF3D5C8BD67F20F66E271E68B0D50"\n}\n'
+b'{\n    "uids": ["Lime Signing Key (Threat Response Official Lime Signing Key) <security@threatresponse.cloud>"],\n    "fingerprint": "EFB6A0CE172EF3D5C8BD67F20F66E271E68B0D50"\n}\n'
+2018-09-02T01:24:41 - margaritashotgun - ERROR - The kernel module for 4.14.62-65.117.amzn1.x86_64 does not exist, searched https://threatresponse-lime-modules.s3.amazonaws.com for availible mo
+dules
+{'total': 1, 'completed': [], 'failed': ['54.173.98.123']}
+2018-09-02T01:24:41 - aws_ir.plans.host - INFO - memory capture completed for: [], failed for: ['54.173.98.123']
+2018-09-02T01:24:41 - aws_ir.plans.host - INFO - Executing step stop_host.

@@ -42,11 +42,12 @@ The result of the 'make' command will be a file with a 'ko' extension.  For exam
 Download this file for use with Margarita Shotgun.  After downloading the LKM, this EC2 instance can be terminated.  NOTE: You DO NOT want to run these commands on the same instance that is to be imaged because you want to have minimal impact of the target instance.
 
 ## STEP 2 - Prepare the Demo Incident Response Workstation
-For this demonstration we will use a new Amazon Linux EC2 instance. Launch the instance and create an Instance Profile with full administrator access.  
+For this demonstration we will use a new Amazon Linux EC2 instance. Launch the instance and attach an Instance Profile named "EC2_Responder".  The EC2_Responder role should have the following two policies attached:
+* AmazonEC2FullAccess
+* AmazonS3FullAccess   
 
 NOTES:
-* This demo will be updated to use an instance profile with least privileges in the future.  
-* To learn more about instance profules for EC2 instances, see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
+* To learn more about instance profiles for EC2 instances, see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
 * Using an instance profile is much more secure than installing AWS Access Keys on the EC2 instance
 
 Next, SSH into it and run the following commands:
@@ -77,7 +78,7 @@ wget -q https://raw.githubusercontent.com/Resistor52/cloud_dfir_demo/master/DONT
 bash dont_peek.sh
 rm dont_peek.sh
 ```
-Be sure that you use the same SSH Key that was uploaded to the Incident Response Workstation.  Note that the Security Group for this EC2 instance must be configured to allow SSH connectivity from the IR Workstation so that Margarita Shotgun can connect to it. 
+Be sure that you use the same SSH Key that was uploaded to the Incident Response Workstation.  Note that the Security Group for this EC2 instance must be configured to allow SSH connectivity from the IR Workstation so that Margarita Shotgun can connect to it.
 
 NOTE: Don't read the `dont_peek.sh` or the forensic analysis will not be a surprise.
 
@@ -100,6 +101,8 @@ aws_ir --examiner-cidr-range $MY_IP/32 instance-compromise --target $TARGET_IP -
 Note that we are calling Margarita Shotgun prior to AWS_IR because although AWS_IR will call Margarita Shotgun, in the present form AWS_IR cannot accept a parameter on the command line to tell Margarita Shotgun which memory module to use.  Instead AWS_IR assumes that the kernel module is in its repository.  The bad news is that recent kernels are not.  Therefore, the simple workaround is to call Margarita Shotgun first.  (Future versions of this demo will show how to set up a custom kernel module repository.)
 
 TROUBLESHOOTING: Did you get an "Unable to locate credentials" error? That may indicate that you forgot to attach the instance profile in Step 2
+
+Here is a [sample of the aws_ir output](sample_aws_ir_output.txt)
 
 ## STEP 5 - Analyze the Data using Rekall and Volitility
 (Coming Soon)
