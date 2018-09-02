@@ -1,5 +1,5 @@
 # Demonstration of Typical Forensic Techniques in the AWS Cloud Step-by-Step
-This demo is a step-by-step walthtrough of techniques that can be used to perform forensics on AWS Elastic Cloud Compute (EC2) Instances. We use various tools such as LiME, Magarita Shotgun, aws_ir, SIFT, Rekall, and Volitility during this demonstration lab.
+This demo is a step-by-step walthtrough of techniques that can be used to perform forensics on AWS Elastic Cloud Compute (EC2) Instances. We use various tools such as [LiME](https://github.com/504ensicsLabs/LiME), [Magarita Shotgun](https://github.com/ThreatResponse/margaritashotgun), [aws_ir](https://github.com/ThreatResponse/aws_ir), [SIFT](https://digital-forensics.sans.org/community/downloads), [Rekall](https://github.com/google/rekall), and [Volatility](https://github.com/volatilityfoundation/volatility) during this demonstration lab.
 
 ## INTRODUCTION & CONTEXT
 This lab makes use of four different EC2 instances, each has their own purpose. While the lab could be done with just two EC2 instances, I want the student to think in terms of the Incident Response Workflow (Preparation > Identification > Containment > Eradication, Recovery > Lessons Learned).
@@ -14,7 +14,7 @@ In the Identification Step, you recognize that there may be a security incident 
 In the Containment Step, we will use our Incident Response Workstation to capture the memory of the target EC2 instance, and use the aws_ir command to make a snapshot of the EBS volume and put the EC2 instance in a Quarantine security group. We will also perform the forensic analysis in this step. The forensic analysis is generally used to help scope the incident, identify indicators of compromise (IOC) and determine root cause.
 
 ### Eradication
-In the cloud, the Eradication Step consists of properly addressing the root cause and terminating all infected instances. Of course, you would not terminate all of the instances before collecting all necessary evidence. Eradication before Containment is a common problem: Someone in operations notices malware on an EC2 and then shutsdown or terminates the EC2 instance...and THEN lets the security team know. Of course by then the memory artifacts are lost and possibly the artifacts on disk too.
+In the cloud, the Eradication Step consists of properly addressing the root cause and terminating all infected instances. Of course, you would not terminate all of the instances before collecting all necessary evidence. Eradication before Containment is a common problem: Someone in operations notices malware on an EC2 and then shuts down or terminates the EC2 instance...and THEN lets the security team know. Of course by then the memory artifacts are lost and possibly the artifacts on disk too.
 
 ### Recovery
 Recovery in the cloud should be fairly automated, assuming that you are using automation to deploy EC2 instances. Of course, this assumes that it was not your source code that was compromised. The Recovery Stage is about returning to the (new) normal state with mitigations in place.
@@ -69,7 +69,14 @@ scp -i <YOUR_SSH_KEY> <YOUR_FILE>  ec2-user@<YOUR_IP_ADDRESS>:~
 
 NOTE: If you exit SSH, you will need to rerun `source env/bin/activate` or aws_ir will not execute
 
-## STEP 3 - Prepare a Demonstration Target
+## STEP 3 - Prepare the SIFT workstation
+Launch an "Ubuntu Server 16.04 LTS (HVM)" t2.large instance and in Step 3 of the Launch wizard, expand the "Advanced Details" part of the form and paste in the code from this [link](https://raw.githubusercontent.com/Resistor52/SIFTonEC2/master/config-SIFT.sh). Note that it may take a while for this step to complete, so continue on.
+
+NOTE: Some may wonder why use a second EC2 instance, thinking that the Incident Response Workstation and the SIFT Workstation can be combined. For the demo, they could. However, it is a best practice to perform the forensic analysis in a different AWS Account. In practice, the analysis may be done by a different team member as well.
+
+Lastly, be sure to attach the EC2_Responder role to the SIFT Workstation so that it can access S3.
+
+## STEP 4 - Prepare a Demonstration Target
 For this step, simply launch another Amazon Linux t2.micro EC2 instance and in Step 3 of the Launch wizard, expand the "Advanced Details" part of the form and paste in the following code in the User Data field:
 
 ```
@@ -98,11 +105,17 @@ margaritashotgun --server $TARGET_IP --username $SSH_USER --key $SSH_KEY --modul
 aws_ir --examiner-cidr-range $MY_IP/32 instance-compromise --target $TARGET_IP --user $SSH_USER --ssh-key $SSH_KEY
 ```
 
-Note that we are calling Margarita Shotgun prior to AWS_IR because although AWS_IR will call Margarita Shotgun, in the present form AWS_IR cannot accept a parameter on the command line to tell Margarita Shotgun which memory module to use.  Instead AWS_IR assumes that the kernel module is in its repository.  The bad news is that recent kernels are not.  Therefore, the simple workaround is to call Margarita Shotgun first.  (Future versions of this demo will show how to set up a custom kernel module repository.)
+Note that we are calling Margarita Shotgun prior to AWS_IR because although AWS_IR will call Margarita Shotgun, in the present form AWS_IR cannot accept a parameter on the command line to tell Margarita Shotgun which memory module to use.  Instead AWS_IR assumes that the kernel module is in its repository.  The bad news is that recent kernels are not.  Therefore, the simple workaround is to call Margarita Shotgun first.  (A future demo will show how to set up a custom kernel module repository.)
 
 TROUBLESHOOTING: Did you get an "Unable to locate credentials" error? That may indicate that you forgot to attach the instance profile in Step 2
 
+You may notice two files created by Margarita Shotgun in your current working directory:
+* memory-capture.log
+* <TARGET_IP>-mem.lime
+
+To make Margarita Shotgun dump the memory to a S3 bucket add the `--bucket memory_capture_bucket` switch.
+
 Here is a [sample of the aws_ir output](sample_aws_ir_output.txt)
 
-## STEP 5 - Analyze the Data using Rekall and Volitility
+## STEP 5 - Analyze the Data using Rekall and Volatility
 (Coming Soon)
