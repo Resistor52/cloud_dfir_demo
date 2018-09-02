@@ -46,6 +46,8 @@ For this demonstration we will use a new Amazon Linux EC2 instance. Launch the i
 * AmazonEC2FullAccess
 * AmazonS3FullAccess   
 
+Tag this EC2 Instance with the "Name" set to "IR Workstation"
+
 NOTES:
 * To learn more about instance profiles for EC2 instances, see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
 * Using an instance profile is much more secure than installing AWS Access Keys on the EC2 instance
@@ -70,11 +72,37 @@ scp -i <YOUR_SSH_KEY> <YOUR_FILE>  ec2-user@<YOUR_IP_ADDRESS>:~
 NOTE: If you exit SSH, you will need to rerun `source env/bin/activate` or aws_ir will not execute
 
 ## STEP 3 - Prepare the SIFT workstation
-Launch an "Ubuntu Server 16.04 LTS (HVM)" t2.large instance and in Step 3 of the Launch wizard, expand the "Advanced Details" part of the form and paste in the code from this [link](https://raw.githubusercontent.com/Resistor52/SIFTonEC2/master/config-SIFT.sh). Note that it may take a while for this step to complete, so continue on.
+Launch an "Ubuntu Server 16.04 LTS (HVM)" t2.large instance and in Step 3 of the Launch wizard, expand the "Advanced Details" part of the form and paste in the following code:
+```
+#!/bin/bash
+logfile=/tmp/setup.log
+echo "START" > logfile
+exec > $logfile 2>&1  # Log stdout and stderr to logfile in /tmp
+TIMESTAMP=$(date)
+echo; echo "== Install Updates"
+apt -y update
+apt -y upgrade
+echo; echo "== Setup SIFT Workstation"
+cd /tmp
+wget -q https://github.com/sans-dfir/sift-cli/releases/download/v1.7.1/sift-cli-linux.sha256.asc
+wget -q https://github.com/sans-dfir/sift-cli/releases/download/v1.7.1/sift-cli-linux
+mv sift-cli-linux /usr/local/bin/sift
+chmod 755 /usr/local/bin/sift
+sudo sift install --user ubuntu
+echo; echo "== Setup the AWS CLI"
+apt install -y awscli
+echo; echo "== SCRIPT COMPLETE"
+echo; echo "== $0 has completed"
+```
+It may take a while for this step to complete, so continue on. Tag this EC2 Instance with the "Name" set to "SIFT Workstation"
 
 NOTE: Some may wonder why use a second EC2 instance, thinking that the Incident Response Workstation and the SIFT Workstation can be combined. For the demo, they could. However, it is a best practice to perform the forensic analysis in a different AWS Account. In practice, the analysis may be done by a different team member as well.
 
-Lastly, be sure to attach the EC2_Responder role to the SIFT Workstation so that it can access S3.
+Next, attach the EC2_Responder role to the SIFT Workstation so that it can access S3.  After the Ubuntu server boot-up script completes, login and verify that the script completed by running `tail -f \tmp\setup.log` also verify that the following commands execute by running them individually:
+```
+rekall --help
+vol.py --help
+```
 
 ## STEP 4 - Prepare a Demonstration Target
 For this step, simply launch another Amazon Linux t2.micro EC2 instance and in Step 3 of the Launch wizard, expand the "Advanced Details" part of the form and paste in the following code in the User Data field:
@@ -89,19 +117,22 @@ Be sure that you use the same SSH Key that was uploaded to the Incident Response
 
 NOTE: Don't read the `dont_peek.sh` or the forensic analysis will not be a surprise.
 
+Tag this EC2 Instance with the "Name" set to "Target"
+
 ## STEP 4 - Collect Evidence from Demonstration Target
-Now for the fun part.  Copy the following code to a notepad and alter the parameters as appropriate and then paste the code into the command line while connected via SSH to the Incident Response Workstation:
+Navigate to the AWS Simple Storage Service and create a S3 bucket for your memory captures. Next, copy the following code to a notepad and alter the parameters as appropriate and then paste the code into the command line while connected via SSH to the Incident Response Workstation:
 
 ```
 ## Set Parameters as appropriate
-TARGET_IP=<YOUR_IP_ADDRESS>                  # Update this with your target's IPv4 Address
+TARGET_IP=<TARGET_IP_ADDRESS>                  # Update this with your target's IPv4 Address
 SSH_KEY=<YOUR_SSH_KEY.pem>
 SSH_USER=ec2-user                            # for Amazon Linux, SSH_USER=ubuntu for Ubuntu
+BUCKET=<YOUR_MEMORY_BUCKET>                  # Use the bucket that was created at the beginning of this step
 MODULE=lime-4.14.62-65.117.amzn1.x86_64.ko   # amzn-ami-hvm-2018.03.0.2018Amazon Linux AMI 2018.03.0 (ami-0ff8a91507f77f867)
 
 ## Make the magic happen
 MY_IP=$(curl -s icanhazip.com)
-margaritashotgun --server $TARGET_IP --username $SSH_USER --key $SSH_KEY --module $MODULE --filename $TARGET_IP-mem.lime
+margaritashotgun --server $TARGET_IP --username $SSH_USER --key $SSH_KEY --module $MODULE --filename $TARGET_IP-mem.lime --bucket $BUCKET
 aws_ir --examiner-cidr-range $MY_IP/32 instance-compromise --target $TARGET_IP --user $SSH_USER --ssh-key $SSH_KEY
 ```
 
@@ -109,13 +140,37 @@ Note that we are calling Margarita Shotgun prior to AWS_IR because although AWS_
 
 TROUBLESHOOTING: Did you get an "Unable to locate credentials" error? That may indicate that you forgot to attach the instance profile in Step 2
 
-You may notice two files created by Margarita Shotgun in your current working directory:
-* memory-capture.log
-* <TARGET_IP>-mem.lime
-
-To make Margarita Shotgun dump the memory to a S3 bucket add the `--bucket memory_capture_bucket` switch.
-
 Here is a [sample of the aws_ir output](sample_aws_ir_output.txt)
 
-## STEP 5 - Analyze the Data using Rekall and Volatility
-(Coming Soon)
+## STEP 5 - Prepare the Evidence for Examination
+SSH into the SIFT Workstation. Verify that the S3 bucket can be accessed by running the following command:
+```
+aws s3 ls <YOUR_MEMORY_BUCKET>
+```
+You should see a file listed that has the name `<TARGET_IP_ADDRESS>-mem.lime` so lets download it using:
+```
+aws s3 cp s3://<YOUR_MEMORY_BUCKET>/<TARGET_IP_ADDRESS>-mem.lime /cases/<TARGET_IP_ADDRESS>-mem.lime
+```
+
+Great, now that we have the Memory Image moved to the SIFT Workstation, let's [make an EBS Volume from the snapshot](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-restoring-volume.html) being careful to select the same availability zone that the SIFT Workstation is running in. Tag the Volume with a meaningful name like "Evidence" to differentiate it.
+
+Next, [attach the "Evidence" volume to the SIFT Workstation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-attaching-volume.html) and then run the `lsblk` command.  The output may look as follows:
+```
+
+root@ip-172-31-86-142:/home/ubuntu# lsblk
+NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+xvda    202:0    0    8G  0 disk
+└─xvda1 202:1    0    8G  0 part /
+xvdf    202:80   0    8G  0 disk
+└─xvdf1 202:81   0    8G  0 part                       <----This is the device
+loop0     7:0    0   87M  1 loop /snap/core/5145
+loop1     7:1    0 12.6M  1 loop /snap/amazon-ssm-agent/295
+```
+The `lsblk` command revealed that nothing is mounted to /dev/xvdf1 so let's mount it read-only:
+```
+mkdir /mnt/linux_mount
+mount -o ro /dev/xvdf1 /mnt/linux_mount
+```
+
+## STEP 6 - Analyze the Data using Rekall and Volatility
+**Coming Soon**
