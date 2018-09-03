@@ -1,4 +1,4 @@
-# Demonstration of Typical Forensic Techniques in the AWS Cloud Step-by-Step
+# Step by Step Demonstration of Typical Forensic Techniques for AWS EC2 Instances
 This demo is a step-by-step walthtrough of techniques that can be used to perform forensics on AWS Elastic Cloud Compute (EC2) Instances. We use various tools such as [LiME](https://github.com/504ensicsLabs/LiME), [Magarita Shotgun](https://github.com/ThreatResponse/margaritashotgun), [aws_ir](https://github.com/ThreatResponse/aws_ir), [SIFT](https://digital-forensics.sans.org/community/downloads), [Rekall](https://github.com/google/rekall), and [Volatility](https://github.com/volatilityfoundation/volatility) during this demonstration lab.
 
 ## INTRODUCTION & CONTEXT
@@ -14,7 +14,7 @@ In the Identification Step, you recognize that there may be a security incident 
 In the Containment Step, we will use our Incident Response Workstation to capture the memory of the target EC2 instance, and use the aws_ir command to make a snapshot of the EBS volume and put the EC2 instance in a Quarantine security group. We will also perform the forensic analysis in this step. The forensic analysis is generally used to help scope the incident, identify indicators of compromise (IOC) and determine root cause.
 
 ### Eradication
-In the cloud, the Eradication Step consists of properly addressing the root cause and terminating all infected instances. Of course, you would not terminate all of the instances before collecting all necessary evidence. Eradication before Containment is a common problem: Someone in operations notices malware on an EC2 and then shuts down or terminates the EC2 instance...and THEN lets the security team know. Of course by then the memory artifacts are lost and possibly the artifacts on disk too.
+In the cloud, the Eradication Step consists of properly addressing the root cause and terminating all infected instances. Of course, you would not terminate all of the instances before collecting all necessary evidence. Eradication before Containment is a common problem: Someone in operations notices malware on an EC2 and then shuts down or terminates the EC2 instance...and THEN lets the security team know. Of course by then, the memory artifacts are lost and possibly the artifacts on disk too.
 
 ### Recovery
 Recovery in the cloud should be fairly automated, assuming that you are using automation to deploy EC2 instances. Of course, this assumes that it was not your source code that was compromised. The Recovery Stage is about returning to the (new) normal state with mitigations in place.
@@ -25,7 +25,7 @@ Never waste a crisis. Use the Lessons Learned Phase to drive your security agend
 Ok, without further ado, let's have some fun!
 
 ## STEP 1 - Create the LiME Memory Module for the AMI
-As noted above, this is a Preparation Phase activity that should be done once for each AMI used in your environment, at the time it is approved (or detected). This is because in order to do a memory capture using Margarita Shotgun, it is necessary to have an external LKM (memory module) that corresponds to the kernal that is in use by the EC2 instance that is to be imaged. Do that by launching a new EC2 instance with the same AMI of the system to be imaged. For example, you can use use ami-0ff8a91507f77f867 or whatever is the latest in the Marketplace. Next, SSH into it and run the following commands:
+As noted above, this is a Preparation Phase activity that should be done once for each AMI used in your environment, at the time it is approved (or detected). This is because in order to do a memory capture using Margarita Shotgun, it is necessary to have an external LKM (linux kernel memory) module that corresponds to the kernel that is in use by the EC2 instance that is to be imaged. Do that by launching a new EC2 instance with the same AMI of the system to be imaged. For example, you can use ami-0ff8a91507f77f867 or whatever is the latest in the Marketplace. Next, SSH into it and run the following commands:
 
 ```
 sudo yum update -y
@@ -34,14 +34,38 @@ sudo yum install -y kernel-devel-$(uname -r)
 git clone https://github.com/504ensicsLabs/LiME.git
 cd LiME/src
 make
+cp *.ko ~
 ```
 
-The result of the 'make' command will be a file with a 'ko' extension.  For example, `lime-4.14.62-65.117.amzn1.x86_64.ko
-` would be created for ami-0ff8a91507f77f867.
+The result of the 'make' command will be a file with a 'ko' extension.  For example, `lime-4.14.62-65.117.amzn1.x86_64.ko` would be created for ami-0ff8a91507f77f867.
 
-Download this file for use with Margarita Shotgun.  After downloading the LKM, this EC2 instance can be terminated.  NOTE: You DO NOT want to run these commands on the same instance that is to be imaged because you want to have minimal impact of the target instance.
+Stay logged into this EC2 Instance for the next step.  The LKM, Volatility Profile, and Rekall Profile must all match the target system and that is why we are using a matching AMI.
 
-## STEP 2 - Prepare the Demo Incident Response Workstation
+## STEP 2 - Prepare the Volatility Profile
+The following instructions in this step are adapted from the following references:
+* [Linux Memory Forensics Wiki](https://code.google.com/archive/p/volatility/wikis/LinuxMemoryForensics.wiki)
+* [rekall / tools / linux / README](https://github.com/google/rekall/tree/master/tools/linux)
+* [Creating Volatility Linux Profiles (Debian/Ubuntu)](https://www.evild3ad.com/3571/creating-volatility-linux-profiles-debianubuntu/)
+
+Volatility uses the profile to locate critical information in the memory structure dumped by LiME. A Volatility Profile is a zip file with specific information pertaining to the specific target's kernel.
+```
+git clone https://github.com/volatilityfoundation/volatility.git
+sudo yum install -y libdwarf-tools
+sudo chown -R ec2-user ~/volatility/tools/linux
+cd ~/volatility/tools/linux/                  # We will use the Volatility tools
+make                                          # This makes the module.dwarf file
+sudo zip "/home/ec2-user/`uname -r`.zip" module.dwarf /boot/System.map-`uname -r`
+cd ~
+ls *.zip
+```
+
+Sudo is required to read the /boot directory.
+
+Download this zip file for use with Volatility and the LKM file for use with Margarita Shotgun.  After downloading the LKM, this EC2 instance can be terminated.  In Step 8, we will use Rekall on the SIFT Workstation to convert the Volatility Profile to a Rekall Profile.  
+
+NOTE: You DO NOT want to run these commands on the same instance that is to be imaged because you want to have minimal impact of the target instance.
+
+## STEP 3 - Prepare the Demo Incident Response Workstation
 For this demonstration we will use a new Amazon Linux EC2 instance. Launch the instance and attach an Instance Profile named "EC2_Responder".  The EC2_Responder role should have the following two policies attached:
 * AmazonEC2FullAccess
 * AmazonS3FullAccess   
@@ -49,8 +73,8 @@ For this demonstration we will use a new Amazon Linux EC2 instance. Launch the i
 Tag this EC2 Instance with the "Name" set to "IR Workstation"
 
 NOTES:
-* To learn more about instance profiles for EC2 instances, see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
-* Using an instance profile is much more secure than installing AWS Access Keys on the EC2 instance
+* To learn more about instance profiles for EC2 instances, see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html.
+* Using an instance profile is much more secure than installing AWS Access Keys on the EC2 instance.
 
 Next, SSH into it and run the following commands:
 ```
@@ -71,8 +95,8 @@ scp -i <YOUR_SSH_KEY> <YOUR_FILE>  ec2-user@<YOUR_IP_ADDRESS>:~
 
 NOTE: If you exit SSH, you will need to rerun `source env/bin/activate` or aws_ir will not execute
 
-## STEP 3 - Prepare the SIFT workstation
-Launch an "Ubuntu Server 16.04 LTS (HVM)" t2.large instance and in Step 3 of the Launch wizard, expand the "Advanced Details" part of the form and paste in the following code:
+## STEP 4 - Prepare the SIFT workstation
+Launch an "Ubuntu Server 16.04 LTS (HVM)" **t2.large** instance with at least 40 GB of primary disk space. In Step 3 of the Launch wizard, expand the "Advanced Details" part of the form and paste in the following code:
 ```
 #!/bin/bash
 logfile=/tmp/setup.log
@@ -98,13 +122,13 @@ It may take a while for this step to complete, so continue on. Tag this EC2 Inst
 
 NOTE: Some may wonder why use a second EC2 instance, thinking that the Incident Response Workstation and the SIFT Workstation can be combined. For the demo, they could. However, it is a best practice to perform the forensic analysis in a different AWS Account. In practice, the analysis may be done by a different team member as well.
 
-Next, attach the EC2_Responder role to the SIFT Workstation so that it can access S3.  After the Ubuntu server boot-up script completes, login and verify that the script completed by running `tail -f \tmp\setup.log` also verify that the following commands execute by running them individually:
+Next, attach the EC2_Responder role to the SIFT Workstation so that it can access S3.  After the Ubuntu server boot-up script completes, login and verify that the script completed by running `tail -f \tmp\setup.log`. Also verify that the following commands execute by running them individually:
 ```
 rekall --help
 vol.py --help
 ```
 
-## STEP 4 - Prepare a Demonstration Target
+## STEP 5 - Prepare a Demonstration Target
 For this step, simply launch another Amazon Linux t2.micro EC2 instance and in Step 3 of the Launch wizard, expand the "Advanced Details" part of the form and paste in the following code in the User Data field:
 
 ```
@@ -119,30 +143,32 @@ NOTE: Don't read the `dont_peek.sh` or the forensic analysis will not be a surpr
 
 Tag this EC2 Instance with the "Name" set to "Target"
 
-## STEP 4 - Collect Evidence from Demonstration Target
+## STEP 6 - Collect Evidence from Demonstration Target
 Navigate to the AWS Simple Storage Service and create a S3 bucket for your memory captures. Next, copy the following code to a notepad and alter the parameters as appropriate and then paste the code into the command line while connected via SSH to the Incident Response Workstation:
 
 ```
 ## Set Parameters as appropriate
-TARGET_IP=<TARGET_IP_ADDRESS>                  # Update this with your target's IPv4 Address
+TARGET_IP=<TARGET_IP_ADDRESS>                # Update this with your target's IPv4 Address
 SSH_KEY=<YOUR_SSH_KEY.pem>
 SSH_USER=ec2-user                            # for Amazon Linux, SSH_USER=ubuntu for Ubuntu
 BUCKET=<YOUR_MEMORY_BUCKET>                  # Use the bucket that was created at the beginning of this step
-MODULE=lime-4.14.62-65.117.amzn1.x86_64.ko   # amzn-ami-hvm-2018.03.0.2018Amazon Linux AMI 2018.03.0 (ami-0ff8a91507f77f867)
+MODULE=lime-4.14.62-65.117.amzn1.x86_64.ko   # Amazon Linux AMI 2018.03.0 (ami-0ff8a91507f77f867)
 
 ## Make the magic happen
 MY_IP=$(curl -s icanhazip.com)
-margaritashotgun --server $TARGET_IP --username $SSH_USER --key $SSH_KEY --module $MODULE --filename $TARGET_IP-mem.lime --bucket $BUCKET
-aws_ir --examiner-cidr-range $MY_IP/32 instance-compromise --target $TARGET_IP --user $SSH_USER --ssh-key $SSH_KEY
+margaritashotgun --server $TARGET_IP --username $SSH_USER --key $SSH_KEY /
+    --module $MODULE --filename $TARGET_IP-mem.lime --bucket $BUCKET
+aws_ir --examiner-cidr-range $MY_IP/32 instance-compromise --target $TARGET_IP /
+    --user $SSH_USER --ssh-key $SSH_KEY
 ```
 
 Note that we are calling Margarita Shotgun prior to AWS_IR because although AWS_IR will call Margarita Shotgun, in the present form AWS_IR cannot accept a parameter on the command line to tell Margarita Shotgun which memory module to use.  Instead AWS_IR assumes that the kernel module is in its repository.  The bad news is that recent kernels are not.  Therefore, the simple workaround is to call Margarita Shotgun first.  (A future demo will show how to set up a custom kernel module repository.)
 
-TROUBLESHOOTING: Did you get an "Unable to locate credentials" error? That may indicate that you forgot to attach the instance profile in Step 2
+TROUBLESHOOTING: Did you get an "Unable to locate credentials" error? That may indicate that you forgot to attach the instance profile in Step 2.
 
-Here is a [sample of the aws_ir output](sample_aws_ir_output.txt)
+Here is a [sample of the aws_ir output](sample_aws_ir_output.txt).
 
-## STEP 5 - Prepare the Evidence for Examination
+## STEP 7 - Prepare the Evidence for Examination
 SSH into the SIFT Workstation. Verify that the S3 bucket can be accessed by running the following command:
 ```
 aws s3 ls <YOUR_MEMORY_BUCKET>
@@ -166,11 +192,20 @@ xvdf    202:80   0    8G  0 disk
 loop0     7:0    0   87M  1 loop /snap/core/5145
 loop1     7:1    0 12.6M  1 loop /snap/amazon-ssm-agent/295
 ```
-The `lsblk` command revealed that nothing is mounted to /dev/xvdf1 so let's mount it read-only:
+The `lsblk` command revealed that nothing is mounted to `/dev/xvdf1`, so let's mount it read-only:
 ```
-mkdir /mnt/linux_mount
-mount -o ro /dev/xvdf1 /mnt/linux_mount
+sudo mkdir /mnt/linux_mount
+sudo mount -o ro /dev/xvdf1 /mnt/linux_mount
 ```
 
-## STEP 6 - Analyze the Data using Rekall and Volatility
+REMINDER: If you log out you will need to mount the evidence again unless you have modified /etc/fstab
+
+## STEP 8 - Convert the Volatility Profile to a Rekall Profile
+First, upload the Volatility Profile (zip file) that was created in Step 2 to the SIFT workstation and then run the following command:
+```
+rekal.py convert_profile *.zip rekall_profile.json
+```
+
+
+## STEP 9 - Analyze the Data using Rekall and Volatility
 **Coming Soon**
