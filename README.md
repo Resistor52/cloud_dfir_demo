@@ -41,7 +41,7 @@ The result of the 'make' command will be a file with a 'ko' extension.  For exam
 
 Stay logged into this EC2 Instance for the next step.  The LKM, Volatility Profile, and Rekall Profile must all match the target system and that is why we are using a matching AMI.
 
-## STEP 2 - Prepare the Volatility Profile
+## STEP 2 - Prepare the Volatility Profile and the Files for the Rekall Profile
 The following instructions in this step are adapted from the following references:
 * [Linux Memory Forensics Wiki](https://code.google.com/archive/p/volatility/wikis/LinuxMemoryForensics.wiki)
 * [rekall / tools / linux / README](https://github.com/google/rekall/tree/master/tools/linux)
@@ -49,8 +49,8 @@ The following instructions in this step are adapted from the following reference
 
 Volatility uses the profile to locate critical information in the memory structure dumped by LiME. A Volatility Profile is a zip file with specific information pertaining to the specific target's kernel.
 ```
-git clone https://github.com/volatilityfoundation/volatility.git
 sudo yum install -y libdwarf-tools
+git clone https://github.com/volatilityfoundation/volatility.git
 sudo chown -R ec2-user ~/volatility/tools/linux
 cd ~/volatility/tools/linux/                  # We will use the Volatility tools
 make                                          # This makes the module.dwarf file
@@ -58,10 +58,18 @@ sudo zip "/home/ec2-user/`uname -r`.zip" module.dwarf /boot/System.map-`uname -r
 cd ~
 ls *.zip
 ```
+sudo is required to read the /boot directory.
 
-Sudo is required to read the /boot directory.
-
-Download this zip file for use with Volatility and the LKM file for use with Margarita Shotgun.  After downloading the LKM, this EC2 instance can be terminated.  In Step 8, we will use Rekall on the SIFT Workstation to convert the Volatility Profile to a Rekall Profile.  
+Next, zip the files that Rekall will need to create its profile for this AMI:
+```
+mkdir temporary
+cp /boot/System.map-`uname -r` temporary/
+sudo cp /boot/System.map-`uname -r` temporary/
+sudo cp /boot/config-`uname -r` temporary/
+sudo zip files_for_rekall_profile.zip temporary/*
+sudo chown ec2-user:ec2-user files_for_rekall_profile.zip
+```
+Download these two zip files for use on the SIFT Workstation and the LKM file for use with Margarita Shotgun.  After downloading the files, this EC2 instance can be terminated.  In Step 8, we will use Rekall on the SIFT Workstation to convert the Volatility Profile to a Rekall Profile.  
 
 NOTE: You DO NOT want to run these commands on the same instance that is to be imaged because you want to have minimal impact of the target instance.
 
@@ -126,6 +134,24 @@ Next, attach the EC2_Responder role to the SIFT Workstation so that it can acces
 ```
 rekall --help
 vol.py --help
+```
+
+Next, install the Rekall layout_expert utility on the SIFT Workstation.  This tool will be used to create the Rekall profile
+```
+cd  /opt/rekall/tools/layout_expert/
+sudo python setup.py install
+```
+
+NOTE: The Current versions of Volatility on the SIFT Workstation needs to be updated. Enter these commands:
+```
+# Update Volatility on SIFT workstation
+sudo rm -rf /usr/local/lib/python2.7/dist-packages/volatility
+rm `which vol.py`
+cd /usr/local/lib/python2.7/dist-packages/
+sudo git clone https://github.com/volatilityfoundation/volatility.git
+cd volatility
+sudo python setup.py install
+cd ~
 ```
 
 ## STEP 5 - Prepare a Demonstration Target
@@ -200,11 +226,34 @@ sudo mount -o ro /dev/xvdf1 /mnt/linux_mount
 
 REMINDER: If you log out you will need to mount the evidence again unless you have modified /etc/fstab
 
-## STEP 8 - Convert the Volatility Profile to a Rekall Profile
-First, upload the Volatility Profile (zip file) that was created in Step 2 to the SIFT workstation and then run the following command:
+## STEP 8 - Setup the Volatility & Rekall Profiles
+First, upload the Volatility Profile (zip file) that was created in Step 2 to the SIFT workstation and then run the following two commands:
 ```
-rekal.py convert_profile *.zip rekall_profile.json
+sudo cp *.zip /usr/local/lib/python2.7/dist-packages/volatility-2.6-py2.7.egg/volatility/plugins/overlays/linux/
+vol.py --info | grep -i amzn
 ```
+You should see a result similar to this:
+```
+Volatility Foundation Volatility Framework 2.6
+Linux4_14_62-65_117_amzn1_x86_64x64 - A Profile for Linux 4.14.62-65.117.amzn1.x86_64 x64
+```
+Now test it using the following command:
+```
+vol.py --profile=<YOUR_VOLATILITY_PROFILE> -f <YOUR_MEMORY_DUMP>  linux_banner
+```
+For example, the command and output may look something like this:
+```
+$ vol.py --profile=Linux4_14_62-65_117_amzn1_x86_64x64  -f 54.85.216.218-mem.lime  linux_banner
+Volatility Foundation Volatility Framework 2.6
+Linux version 4.14.62-65.117.amzn1.x86_64 (mockbuild@gobi-build-60009) (gcc version 7.2.1 20170915 (Red Hat 7.2.1-2) (GCC)) #1 SMP Fri Aug 10 20:03:52 UTC 2018
+```
+This test shows that Volatility used the `linux_banner` plugin to read the lime file with a valid profile. Having completed that task, lets create the Rekall profile using layout_expert.  Upload the `files_for_rekall_profile.zip` file to the SIFT Workstation and run the following commands:
+```
+unzip files_for_rekall_profile.zip
+cd temporary
+
+```
+
 
 
 ## STEP 9 - Analyze the Data using Rekall and Volatility
