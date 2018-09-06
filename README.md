@@ -31,6 +31,7 @@ As noted above, this is a Preparation Phase activity that should be done once fo
 sudo yum update -y
 sudo yum install -y git
 sudo yum install -y kernel-devel-$(uname -r)
+
 git clone https://github.com/504ensicsLabs/LiME.git
 cd LiME/src
 make
@@ -68,8 +69,9 @@ sudo cp /boot/System.map-`uname -r` temporary/
 sudo cp /boot/config-`uname -r` temporary/
 sudo zip files_for_rekall_profile.zip temporary/*
 sudo chown ec2-user:ec2-user files_for_rekall_profile.zip
+zip kernel-headers-`uname -r`.zip  /usr/src/kernels/`uname -r`/*
 ```
-Download these two zip files for use on the SIFT Workstation and the LKM file for use with Margarita Shotgun.  After downloading the files, this EC2 instance can be terminated.  In Step 8, we will use Rekall on the SIFT Workstation to convert the Volatility Profile to a Rekall Profile.  
+Download these three zip files for use on the SIFT Workstation and the LKM file for use with Margarita Shotgun.  After downloading the files, this EC2 instance can be terminated.  In Step 8, we will use Rekall on the SIFT Workstation to convert the Volatility Profile to a Rekall Profile.  
 
 NOTE: You DO NOT want to run these commands on the same instance that is to be imaged because you want to have minimal impact of the target instance.
 
@@ -130,14 +132,22 @@ It may take a while for this step to complete, so continue on. Tag this EC2 Inst
 
 NOTE: Some may wonder why use a second EC2 instance, thinking that the Incident Response Workstation and the SIFT Workstation can be combined. For the demo, they could. However, it is a best practice to perform the forensic analysis in a different AWS Account. In practice, the analysis may be done by a different team member as well.
 
-Next, attach the EC2_Responder role to the SIFT Workstation so that it can access S3.  After the Ubuntu server boot-up script completes, login and verify that the script completed by running `tail -f \tmp\setup.log`. Also verify that the following commands execute by running them individually:
-```
-rekall --help
-vol.py --help
-```
+Next, attach the EC2_Responder role to the SIFT Workstation so that it can access S3.  After the Ubuntu server boot-up script completes, login and verify that the script completed by running `tail -f /tmp/setup.log`.
 
 Next, install the Rekall layout_expert utility on the SIFT Workstation.  This tool will be used to create the Rekall profile
 ```
+#Install Dependencies
+sudo pip uninstall pyparsing
+sudo pip install pyparsing==2.1.5
+sudo pip install pyelftools==0.23
+sudo pip install intervaltree==2.1.0
+sudo pip install 'efilter==1!1.3'
+sudo pip install 'arrow==0.7.0'
+sudo pip install 'acora==2.0'
+sudo pip install 'PyYAML==3.11'
+sudo pip install 'pyaff4<0.30,>=0.24'
+sudo pip install 'artifacts==20160114'
+#Install layout_expert
 cd  /opt/rekall/tools/layout_expert/
 sudo python setup.py install
 ```
@@ -146,14 +156,19 @@ NOTE: The Current versions of Volatility on the SIFT Workstation needs to be upd
 ```
 # Update Volatility on SIFT workstation
 sudo rm -rf /usr/local/lib/python2.7/dist-packages/volatility
-rm `which vol.py`
+rm -f `which vol.py`
 cd /usr/local/lib/python2.7/dist-packages/
 sudo git clone https://github.com/volatilityfoundation/volatility.git
 cd volatility
 sudo python setup.py install
 cd ~
 ```
-
+Also verify that the following commands execute by running them individually:
+```
+rekall --help
+layout_tool -h
+vol.py --help
+```
 ## STEP 5 - Prepare a Demonstration Target
 For this step, simply launch another Amazon Linux t2.micro EC2 instance and in Step 3 of the Launch wizard, expand the "Advanced Details" part of the form and paste in the following code in the User Data field:
 
@@ -182,15 +197,17 @@ MODULE=lime-4.14.62-65.117.amzn1.x86_64.ko   # Amazon Linux AMI 2018.03.0 (ami-0
 
 ## Make the magic happen
 MY_IP=$(curl -s icanhazip.com)
-margaritashotgun --server $TARGET_IP --username $SSH_USER --key $SSH_KEY /
+margaritashotgun --server $TARGET_IP --username $SSH_USER --key $SSH_KEY \
     --module $MODULE --filename $TARGET_IP-mem.lime --bucket $BUCKET
-aws_ir --examiner-cidr-range $MY_IP/32 instance-compromise --target $TARGET_IP /
+aws_ir --examiner-cidr-range $MY_IP/32 instance-compromise --target $TARGET_IP \
     --user $SSH_USER --ssh-key $SSH_KEY
 ```
 
 Note that we are calling Margarita Shotgun prior to AWS_IR because although AWS_IR will call Margarita Shotgun, in the present form AWS_IR cannot accept a parameter on the command line to tell Margarita Shotgun which memory module to use.  Instead AWS_IR assumes that the kernel module is in its repository.  The bad news is that recent kernels are not.  Therefore, the simple workaround is to call Margarita Shotgun first.  (A future demo will show how to set up a custom kernel module repository.)
 
-TROUBLESHOOTING: Did you get an "Unable to locate credentials" error? That may indicate that you forgot to attach the instance profile in Step 2.
+TROUBLESHOOTING:
+* Did you get an "Unable to locate credentials" error? That may indicate that you forgot to attach the instance profile in Step 2.
+* Did you get "timed out" error? That may indicate that you may need to change the security group to allow the Incident Response Workstation to connect to the target via SSH.
 
 Here is a [sample of the aws_ir output](sample_aws_ir_output.txt).
 
@@ -243,14 +260,15 @@ vol.py --profile=<YOUR_VOLATILITY_PROFILE> -f <YOUR_MEMORY_DUMP>  linux_banner
 ```
 For example, the command and output may look something like this:
 ```
-$ vol.py --profile=Linux4_14_62-65_117_amzn1_x86_64x64  -f 54.85.216.218-mem.lime  linux_banner
+$ vol.py --profile=Linux4_14_62-65_117_amzn1_x86_64x64  -f /cases/54.85.216.218-mem.lime  linux_banner
 Volatility Foundation Volatility Framework 2.6
 Linux version 4.14.62-65.117.amzn1.x86_64 (mockbuild@gobi-build-60009) (gcc version 7.2.1 20170915 (Red Hat 7.2.1-2) (GCC)) #1 SMP Fri Aug 10 20:03:52 UTC 2018
 ```
-This test shows that Volatility used the `linux_banner` plugin to read the lime file with a valid profile. Having completed that task, lets create the Rekall profile using layout_expert.  Upload the `files_for_rekall_profile.zip` file to the SIFT Workstation and run the following commands:
+This test shows that Volatility used the `linux_banner` plugin to read the lime file with a valid profile. Having completed that task, lets create the Rekall profile using layout_expert.  Upload the `files_for_rekall_profile.zip` file and the kernel-headers zip file to the SIFT Workstation and run the following commands:
 ```
 unzip files_for_rekall_profile.zip
-cd temporary
+unzip kernel-headers-*.zip
+
 
 ```
 
@@ -258,3 +276,6 @@ cd temporary
 
 ## STEP 9 - Analyze the Data using Rekall and Volatility
 **Coming Soon**
+
+banner
+http://www.rekall-forensic.com/documentation-1/rekall-documentation/plugins
