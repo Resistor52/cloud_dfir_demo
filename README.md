@@ -65,10 +65,15 @@ sudo is required to read the /boot directory.
 cd ~
 git clone https://github.com/google/rekall.git
 cd ~/rekall/tools/linux
-
-
+rm -f Makefile #Replace the Makefile
+wget https://raw.githubusercontent.com/Resistor52/cloud_dfir_demo/master/Makefile
+sudo make profile
+cp module.ko module_dwarf.ko
+zip "~/rekall-`uname -r`.zip" module_dwarf.ko /boot/System.map-`uname -r`
+cd ~
 ```
-Download these three zip files for use on the SIFT Workstation and the LKM file for use with Margarita Shotgun.  After downloading the files, this EC2 instance can be terminated.  In Step 8, we will use Rekall on the SIFT Workstation to convert the Volatility Profile to a Rekall Profile.  
+
+Download these two zip files for use on the SIFT Workstation and the LKM file for use with Margarita Shotgun.  After downloading the files, this EC2 instance can be terminated.  In Step 8, we will use Rekall on the SIFT Workstation to convert the Volatility Profile to a Rekall Profile.  
 
 NOTE: You DO NOT want to run these commands on the same instance that is to be imaged because you want to have minimal impact of the target instance.
 
@@ -131,25 +136,8 @@ NOTE: Some may wonder why use a second EC2 instance, thinking that the Incident 
 
 Next, attach the EC2_Responder role to the SIFT Workstation so that it can access S3.  After the Ubuntu server boot-up script completes, login and verify that the script completed by running `tail -f /tmp/setup.log`.
 
-Next, install the Rekall layout_expert utility on the SIFT Workstation.  This tool will be used to create the Rekall profile
-```
-#Install Dependencies
-sudo pip uninstall pyparsing
-sudo pip install pyparsing==2.1.5
-sudo pip install pyelftools==0.23
-sudo pip install intervaltree==2.1.0
-sudo pip install 'efilter==1!1.3'
-sudo pip install 'arrow==0.7.0'
-sudo pip install 'acora==2.0'
-sudo pip install 'PyYAML==3.11'
-sudo pip install 'pyaff4<0.30,>=0.24'
-sudo pip install 'artifacts==20160114'
-#Install layout_expert
-cd  /opt/rekall/tools/layout_expert/
-sudo python setup.py install
-```
 
-NOTE: The Current versions of Volatility on the SIFT Workstation needs to be updated. Enter these commands:
+NOTE: The Current versions of Volatility and Rekall on the SIFT Workstation needs to be updated. Enter these commands:
 ```
 # Update Volatility on SIFT workstation
 sudo rm -rf /usr/local/lib/python2.7/dist-packages/volatility
@@ -159,6 +147,12 @@ sudo git clone https://github.com/volatilityfoundation/volatility.git
 cd volatility
 sudo python setup.py install
 cd ~
+
+# Update Rekall on SIFT Workstation
+virtualenv  /tmp/MyEnv
+source /tmp/MyEnv/bin/activate
+pip install --upgrade setuptools pip wheel
+pip install rekall-agent rekall
 ```
 Also verify that the following commands execute by running them individually:
 ```
@@ -261,18 +255,29 @@ $ vol.py --profile=Linux4_14_62-65_117_amzn1_x86_64x64  -f /cases/54.85.216.218-
 Volatility Foundation Volatility Framework 2.6
 Linux version 4.14.62-65.117.amzn1.x86_64 (mockbuild@gobi-build-60009) (gcc version 7.2.1 20170915 (Red Hat 7.2.1-2) (GCC)) #1 SMP Fri Aug 10 20:03:52 UTC 2018
 ```
-This test shows that Volatility used the `linux_banner` plugin to read the lime file with a valid profile. Having completed that task, lets create the Rekall profile using layout_expert.  Upload the `files_for_rekall_profile.zip` file and the kernel-headers zip file to the SIFT Workstation and run the following commands:
+This test shows that Volatility used the `linux_banner` plugin to read the lime file with a valid profile. Next, set up the rekall profile:
 ```
-unzip files_for_rekall_profile.zip
-unzip kernel-headers-*.zip
-
-
+rekal.py convert_profile rekall-*.zip my-rekall-profile.json
 ```
-
-
+Now test it:
+```
+rekal.py --profile my-rekall-profile.json -f <YOUR_MEMORY_DUMP>  banner
+```
+You should see the same banner that was returned using volatility
 
 ## STEP 9 - Analyze the Data using Rekall and Volatility
-**Coming Soon**
 
-banner
-http://www.rekall-forensic.com/documentation-1/rekall-documentation/plugins
+(additional details coming soon)
+
+Here is the list of Rekall Plugins for Linux:
+https://storage.googleapis.com/web.rekall-innovations.com/docs/Manual/Plugins/Linux/index.html?v=13
+
+and the Volatility Plugins for Linux:
+https://github.com/volatilityfoundation/volatility/wiki/Linux-Command-Reference
+
+## Step 10 - Analyze the Virtual Hard Drive using the SIFT Workstation
+
+(additional details coming soon)
+Refer to a research paper that I wrote on the topic:
+https://www.sans.org/reading-room/whitepapers/cloud/digital-forensic-analysis-amazon-linux-ec2-instances-38235
+
