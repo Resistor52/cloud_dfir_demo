@@ -42,7 +42,7 @@ The result of the 'make' command will be a file with a 'ko' extension.  For exam
 
 Stay logged into this EC2 Instance for the next step.  The LKM, Volatility Profile, and Rekall Profile must all match the target system and that is why we are using a matching AMI.
 
-## STEP 2 - Prepare the Volatility Profile and the Files for the Rekall Profile
+## STEP 2 - Prepare the Volatility and Rekall Profiles
 The following instructions in this step are adapted from the following references:
 * [Linux Memory Forensics Wiki](https://code.google.com/archive/p/volatility/wikis/LinuxMemoryForensics.wiki)
 * [rekall / tools / linux / README](https://github.com/google/rekall/tree/master/tools/linux)
@@ -61,15 +61,12 @@ ls *.zip
 ```
 sudo is required to read the /boot directory.
 
-Next, zip the files that Rekall will need to create its profile for this AMI:
 ```
-mkdir temporary
-cp /boot/System.map-`uname -r` temporary/
-sudo cp /boot/System.map-`uname -r` temporary/
-sudo cp /boot/config-`uname -r` temporary/
-sudo zip files_for_rekall_profile.zip temporary/*
-sudo chown ec2-user:ec2-user files_for_rekall_profile.zip
-zip kernel-headers-`uname -r`.zip  /usr/src/kernels/`uname -r`/*
+cd ~
+git clone https://github.com/google/rekall.git
+cd ~/rekall/tools/linux
+
+
 ```
 Download these three zip files for use on the SIFT Workstation and the LKM file for use with Margarita Shotgun.  After downloading the files, this EC2 instance can be terminated.  In Step 8, we will use Rekall on the SIFT Workstation to convert the Volatility Profile to a Rekall Profile.  
 
