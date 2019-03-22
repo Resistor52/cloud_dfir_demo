@@ -1,3 +1,20 @@
+------------------------------------------------------------
+#       NOTE: This is Deprecated 
+#       See https://forensicate.cloud
+-------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Step by Step Demonstration of Typical Forensic Techniques for AWS EC2 Instances
 This demo is a step-by-step walthtrough of techniques that can be used to perform forensics on AWS Elastic Cloud Compute (EC2) Instances. We use various tools such as [LiME](https://github.com/504ensicsLabs/LiME), [Magarita Shotgun](https://github.com/ThreatResponse/margaritashotgun), [aws_ir](https://github.com/ThreatResponse/aws_ir), [SIFT](https://digital-forensics.sans.org/community/downloads), [Rekall](https://github.com/google/rekall), and [Volatility](https://github.com/volatilityfoundation/volatility) during this demonstration lab.
 
